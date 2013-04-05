@@ -7,38 +7,53 @@ module ActionDispatch
   module Session
     class RedisStore < Rack::Session::Abstract::ID
       def initialize(app, options = {})
-        @redis = ConnectionPool::Wrapper.new(:size => options[:max_connections], :timeout => 5) {
+        @redis = ConnectionPool.new(:size => options[:max_connections], :timeout => 5) {
           Redis.new(:host => "#{options[:host]}", :port => options[:port], db: options[:db])
         }
+        options[:expire_after] ||= 1.day.to_i
         super
       end
 
       def generate_sid
-        loop do
-          sid = super
-          break sid unless @redis.get(sid)
+        @redis.with do |redis|
+          loop do
+            sid = super
+            break sid unless redis.get(sid)
+          end
         end
       end
 
       def get_session(env, sid)
-        unless sid and session = @redis.get(sid)
-          sid, session = generate_sid, {}
-          unless /^OK/ =~ @redis.set(sid, session.to_json)
-            raise "Session collision on '#{sid.inspect}'"
+        session = {}
+        if sid!='null'
+          @redis.with do |redis|
+            options = env['rack.session.options']
+            session_string = redis.get(sid)
+            if session_string
+              session = JSON.parse(session_string)
+            end
           end
         else
-          session = JSON.parse(session)
+          sid = generate_sid
         end
         [sid, session]
       end
 
       def set_session(env, session_id, new_session, options)
-        @redis.set session_id, new_session.to_json
-        session_id
+        if (!new_session.empty?)
+          @redis.with do |redis|
+            redis.setex session_id, options[:expire_after], new_session.to_json
+          end
+        end
+        #For some reason, rack doesn't set new session_id to options[:id]
+        options[:id] = session_id
       end
 
       def destroy_session(env, session_id, options)
-        @redis.del(session_id)
+        puts('Destroy session')
+        @redis.with do |redis|
+          redis.del(session_id)
+        end
         generate_sid unless options[:drop]
       end
     end
