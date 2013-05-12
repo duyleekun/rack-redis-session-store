@@ -42,7 +42,10 @@ module ActionDispatch
       def set_session(env, session_id, new_session, options)
         if (!new_session.empty?)
           @redis.with do |redis|
-            redis.setex session_id, options[:expire_after], new_session.to_json
+            json = Jbuilder.encode do |json|
+              json.(new_session, *new_session.keys)
+            end
+            redis.setex session_id, options[:expire_after],json
           end
         end
         #For some reason, rack doesn't set new session_id to options[:id]

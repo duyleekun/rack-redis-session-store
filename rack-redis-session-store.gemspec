@@ -22,4 +22,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency "connection_pool"
   spec.add_dependency "redis"
   spec.add_dependency "hiredis"
+  spec.add_dependency "jbuilder"
 end
