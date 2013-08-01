@@ -50,7 +50,7 @@ module ActionDispatch
         end
         #For some reason, rack doesn't set new session_id to options[:id]
         options[:id] = session_id
-        return true
+        return session_id
       end
 
       def destroy_session(env, session_id, options)
