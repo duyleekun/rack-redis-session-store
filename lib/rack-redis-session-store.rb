@@ -24,41 +24,32 @@ module ActionDispatch
       end
 
       def get_session(env, sid)
-        session = {}
-        if sid!='null'
-          @redis.with do |redis|
-            options = env['rack.session.options']
-            session_string = redis.get(sid)
-            if session_string
-              session = JSON.parse(session_string)
-            end
+        @redis.with do |redis|
+          unless sid and session = JSON.parse(redis.get(sid))
+            sid, session = generate_sid, {}
           end
-        else
-          sid = generate_sid
+          [sid, session]
         end
-        [sid, session]
       end
 
       def set_session(env, session_id, new_session, options)
-        if (!new_session.empty?)
-          @redis.with do |redis|
-            json = Jbuilder.encode do |json|
-              json.(new_session, *new_session.keys)
-            end
-            redis.setex session_id, options[:expire_after],json
+        expiry = options[:expire_after]
+        expiry = expiry.nil? ? 0 : expiry + 1
+
+        @redis.with do |redis|
+          json = Jbuilder.encode do |json|
+            json.(new_session, *new_session.keys)
           end
+          redis.setex session_id, expiry,json
+          session_id
         end
-        #For some reason, rack doesn't set new session_id to options[:id]
-        options[:id] = session_id
-        return session_id
       end
 
       def destroy_session(env, session_id, options)
-        puts('Destroy session')
         @redis.with do |redis|
           redis.del(session_id)
+          generate_sid unless options[:drop]
         end
-        generate_sid unless options[:drop]
       end
     end
   end
