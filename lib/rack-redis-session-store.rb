@@ -45,7 +45,7 @@ module ActionDispatch
             json = Jbuilder.encode do |json|
               json.(new_session, *new_session.keys)
             end
-            redis.setex session_id, options[:expire_after],json
+            return redis.setex session_id, options[:expire_after],json
           end
         end
         #For some reason, rack doesn't set new session_id to options[:id]
