@@ -25,7 +25,7 @@ module ActionDispatch
 
       def get_session(env, sid)
         @redis.with do |redis|
-          unless sid and session = JSON.parse(redis.get(sid))
+          unless sid and session = JSON.parse(redis.get(sid) || '{}')
             sid, session = generate_sid, {}
           end
           [sid, session]
