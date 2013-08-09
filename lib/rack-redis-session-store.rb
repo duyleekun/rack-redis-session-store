@@ -25,7 +25,7 @@ module ActionDispatch
 
       def get_session(env, sid)
         @redis.with do |redis|
-          unless sid and session = JSON.parse(redis.get(sid) || '{}')
+          unless sid and session = MultiJson.load(redis.get(sid) || '{}')
             sid, session = generate_sid, {}
           end
           [sid, session]
@@ -37,9 +37,7 @@ module ActionDispatch
         expiry = expiry.nil? ? 0 : expiry + 1
 
         @redis.with do |redis|
-          json = Jbuilder.encode do |json|
-            json.(new_session, *new_session.keys)
-          end
+          json = MultiJson.dump(new_session)
           redis.setex session_id, expiry,json
           session_id
         end
