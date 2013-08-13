@@ -37,7 +37,10 @@ module ActionDispatch
         expiry = expiry.nil? ? 0 : expiry + 1
 
         @redis.with do |redis|
-          json = MultiJson.dump(new_session)
+          # Due to 53-bit restriction integer in javascript, must provide monkey patch for jbuilder to overcome this issue (by to_s)
+          json = Jbuilder.encode do |json|
+            json.(new_session, *new_session.keys)
+          end
           redis.setex session_id, expiry,json
           session_id
         end

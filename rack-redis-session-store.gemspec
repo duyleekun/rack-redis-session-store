@@ -23,4 +23,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency "redis"
   spec.add_dependency "hiredis"
   spec.add_dependency 'multi_json', '~> 1.0'
+  spec.add_dependency "jbuilder" #In case you need to provide the custom session serialization, monnkey patch jbuilder will serve that purpose
 end
